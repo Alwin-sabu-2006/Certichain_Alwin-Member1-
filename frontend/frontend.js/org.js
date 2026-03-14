@@ -1,4 +1,4 @@
-window.createAccount = function () {
+window.createAccount = async function () {
     let orgName = document.getElementById("orgName").value;
     let email = document.getElementById("email").value;
     let website = document.getElementById("website").value;
@@ -9,9 +9,26 @@ window.createAccount = function () {
         return;
     }
 
-    localStorage.setItem("orgName", orgName);
-    alert("Organization account created successfully! Redirecting to Dashboard...");
-    window.location.href = "upload.html";
+    try {
+        const response = await fetch("http://localhost:5000/api/org/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orgName, email, website, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.setItem("orgName", orgName);
+            alert("✓ " + data.message + " Redirecting...");
+            window.location.href = "upload.html";
+        } else {
+            alert("❌ Expected Error: " + data.error);
+        }
+    } catch (err) {
+        alert("Server connection failed. Is the Node backend running?");
+        console.error(err);
+    }
 };
 
 // Expose the blockchain logic to the upload page

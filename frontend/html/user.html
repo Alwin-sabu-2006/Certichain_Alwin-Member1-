@@ -38,24 +38,24 @@
     <form id="signupForm">
       <div class="field">
         <label>Full Name</label>
-        <input type="text" placeholder="John Doe" required>
+        <input type="text" id="fullName" placeholder="John Doe" required>
       </div>
       <div class="field">
         <label>Email Address</label>
-        <input type="email" placeholder="john@domain.com" required>
+        <input type="email" id="email" placeholder="john@domain.com" required>
       </div>
       <div class="field">
         <label>University / Organization (Optional)</label>
-        <input type="text" placeholder="Your University">
+        <input type="text" id="university" placeholder="Your University">
       </div>
       <div style="display: flex; gap: 10px;">
         <div class="field" style="flex:1">
           <label>Password</label>
-          <input type="password" placeholder="Password" required>
+          <input type="password" id="password" placeholder="Password" required>
         </div>
         <div class="field" style="flex:1">
           <label>Confirm</label>
-          <input type="password" placeholder="Confirm" required>
+          <input type="password" id="confirm" placeholder="Confirm" required>
         </div>
       </div>
       <button type="submit" class="btn">Create Account</button>
