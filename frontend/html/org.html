@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CertChain — Organization Signup</title>
+  <style>
+    :root {
+      --bg: #04080f; --surface: #0a1628; --surface2: #0d1e36; --border: #1e3a5f; --border2: #2a4f7a;
+      --cyan: #00f0ff; --gold: #ffe135; --green: #00ff9d; --purple: #bf5fff; --text: #eaf6ff; --muted: #5a8ab0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif;}
+    body { background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+    .auth-card { background: var(--surface); border: 1px solid var(--border); padding: 40px 50px; width: 480px; position: relative; z-index: 10; box-shadow: 0 20px 60px rgba(0, 240, 255, .1); }
+    .auth-card::before { content: ''; position: absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+    .logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--cyan); text-align: center; margin-bottom: 25px; letter-spacing: 4px; }
+    .logo span { color: var(--gold); font-family: 'Bebas Neue', sans-serif; }
+    .subtitle { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+    .field { margin-bottom: 16px; }
+    .field label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; display: block; margin-bottom: 6px; }
+    .field input { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; outline: none; transition: border-color .3s; font-size: 14px; }
+    .field input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1); }
+    .btn { width: 100%; padding: 16px; background: var(--cyan); color: var(--bg); font-family: 'Space Mono', monospace; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; border: none; cursor: pointer; transition: 0.3s; margin-top: 10px;}
+    .btn:hover { box-shadow: 0 0 25px rgba(0,240,255, 0.5); transform: translateY(-2px);}
+    .links { text-align: center; margin-top: 20px; font-size: 13px; color: var(--muted); }
+    .links a { color: var(--cyan); text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+    /* Animated Grid BG */
+    #bg { position: fixed; inset: 0; background-image: linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px); background-size: 60px 60px; animation: gridDrift 20s linear infinite; pointer-events: none; z-index: 0; }
+    @keyframes gridDrift { from { background-position: 0 0; } to { background-position: 60px 60px; } }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="bg"></div>
+  <div class="auth-card">
+    <div class="logo" style="cursor: pointer" onclick="window.location.href='index (1).html'">CERT<span>CHAIN</span></div>
+    <div class="subtitle">Organization Application</div>
+    <div class="field">
+      <label>Organization Name</label>
+      <input type="text" id="orgName" placeholder="University / Company Name" required>
+    </div>
+    <div class="field">
+      <label>Email Address</label>
+      <input type="email" id="email" placeholder="Official Email" required>
+    </div>
+    <div class="field">
+      <label>Website</label>
+      <input type="text" id="website" placeholder="https://..." required>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Create robust password" required>
+    </div>
+    <button type="button" class="btn" onclick="createAccount()">Join the Chain</button>
+    <div class="links">
+      Already registered? <a href="login.html">Log In</a>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
+  <script src="../frontend.js/config.js"></script>
+  <script src="../frontend.js/org.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+body{
+    margin:0;
+    font-family:Arial;
+    background:#020d1f;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.signup-box{
+    width:420px;
+    padding:40px;
+    border:1px solid #1b3b63;
+    border-radius:10px;
+}
+
+h2{
+    color:#00eaff;
+    text-align:center;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    margin-top:15px;
+    background:#061833;
+    border:1px solid #1b3b63;
+    color:white;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    margin-top:20px;
+    background:#00eaff;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+}

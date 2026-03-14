@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CertChain — Certificate Details</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════
+   ROOT
+═══════════════════════════════════════════════ */
+    :root {
+      --bg: #04080f;
+      --surface: #0a1628;
+      --surface2: #0d1e36;
+      --border: #1e3a5f;
+      --border2: #2a4f7a;
+      --cyan: #00f0ff;
+      --cyan-dim: rgba(0, 240, 255, 0.10);
+      --gold: #ffe135;
+      --green: #00ff9d;
+      --purple: #bf5fff;
+      --red: #ff4466;
+      --text: #eaf6ff;
+      --muted: #5a8ab0;
+      --glow-c: 0 0 36px rgba(0, 240, 255, 0.38);
+      --glow-g: 0 0 36px rgba(255, 225, 53, 0.42);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      overflow-x: hidden;
+      cursor: none;
+      min-height: 100vh;
+    }
+
+    /* ═══════════════════════════════════════════════
+   CURSOR — chain link + gold dot + sparks
+═══════════════════════════════════════════════ */
+    #cur-outer {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      width: 34px;
+      height: 34px;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -50%);
+      transition: transform .22s;
+    }
+
+    #cur-outer svg {
+      width: 34px;
+      height: 34px;
+      animation: spinChain 2.8s linear infinite;
+      filter: drop-shadow(0 0 7px var(--cyan));
+    }
+
+    #cur-inner {
+      position: fixed;
+      pointer-events: none;
+      z-index: 10000;
+      width: 9px;
+      height: 9px;
+      background: var(--gold);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 14px var(--gold), 0 0 28px var(--gold);
+      transition: width .12s, height .12s, background .15s;
+    }
+
+    .spark {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9997;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: sparkOut .65s ease-out forwards;
+    }
+
+    @keyframes spinChain {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes sparkOut {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0);
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 3px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg)
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--cyan);
+      border-radius: 2px
+    }
+
+    /* ═══════════════════════════════════════════════
+   CANVAS + ANIMATED GRID
+═══════════════════════════════════════════════ */
+    #bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridDrift 20s linear infinite;
+    }
+
+    @keyframes gridDrift {
+      from {
+        background-position: 0 0
+      }
+
+      to {
+        background-position: 60px 60px
+      }
+    }
+
+    /* ═══════════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════════ */
+    nav {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 60px;
+      background: rgba(4, 8, 15, 0.93);
+      backdrop-filter: blur(22px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      letter-spacing: 5px;
+      color: var(--cyan);
+      text-decoration: none;
+      text-shadow: var(--glow-c);
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+
+    .logo span {
+      color: var(--gold);
+      text-shadow: var(--glow-g);
+    }
+
+    @keyframes logoPulse {
+
+      0%,
+      100% {
+        text-shadow: var(--glow-c);
+      }
+
+      50% {
+        text-shadow: 0 0 70px rgba(0, 240, 255, .7), 0 0 140px rgba(0, 240, 255, .3);
+      }
+    }
+
+    .nav-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .nav-breadcrumb .sep {
+      color: var(--border2);
+    }
+
+    .nav-breadcrumb .active {
+      color: var(--cyan);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .org-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 7px 16px;
+      border: 1px solid var(--border2);
+      color: var(--cyan);
+      background: rgba(0, 240, 255, .05);
+    }
+
+    .org-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: blink 1.4s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .2
+      }
+    }
+
+    .btn-nav {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: none;
+      transition: border-color .2s, color .2s;
+    }
+
+    .btn-nav:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    /* ═══════════════════════════════════════════════
+   PAGE
+═══════════════════════════════════════════════ */
+    .page {
+      position: relative;
+      z-index: 1;
+      padding: 112px 60px 80px;
+      max-width: 1260px;
+      margin: 0 auto;
+    }
+
+    /* ── Page Header ── */
+    .page-header {
+      margin-bottom: 52px;
+      animation: slideDown .8s .1s cubic-bezier(.22, 1, .36, 1) both;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .page-eyebrow {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ey-line {
+      width: 48px;
+      height: 1px;
+      background: var(--border2);
+    }
+
+    .page-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(52px, 6vw, 88px);
+      line-height: .9;
+      margin-bottom: 14px;
+    }
+
+    .page-title em {
+      font-style: normal;
+      color: var(--cyan);
+      text-shadow: 0 0 40px rgba(0, 240, 255, .4);
+    }
+
+    .page-sub {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 520px;
+    }
+
+    /* ── Progress Steps ── */
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      margin-top: 36px;
+      gap: 0;
+      animation: slideDown .8s .22s cubic-bezier(.22, 1, .36, 1) both;
+    }
+
+    .prog-step {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 18px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .prog-step.done {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .prog-step.active {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: rgba(0, 240, 255, .05);
+    }
+
+    .prog-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .prog-step.done .prog-num {
+      background: var(--green);
+      border-color: var(--green);
+      color: var(--bg);
+    }
+
+    .prog-step.active .prog-num {
+      background: var(--cyan);
+      border-color: var(--cyan);
+      color: var(--bg);
+      animation: numPulse 1.5s infinite;
+    }
+
+    @keyframes numPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(0, 240, 255, .4)
+      }
+
+      50% {
+        box-shadow: 0 0 0 6px rgba(0, 240, 255, 0)
+      }
+    }
+
+    .prog-line {
+      height: 1px;
+      width: 32px;
+      background: var(--border);
+    }
+
+    .prog-line.done {
+      background: var(--green);
+    }
+
+    /* ═══════════════════════════════════════════════
+   LAYOUT — form + sidebar
+═══════════════════════════════════════════════ */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 4px;
+      animation: fadeUp .8s .38s both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(22px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    /* ═══════════════════════════════════════════════
+   FORM PANEL
+═══════════════════════════════════════════════ */
+    .form-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* animated top scan line */
+    .form-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: scanShift 4s ease-in-out infinite;
+    }
+
+    @keyframes scanShift {
+      0% {
+        opacity: .2;
+        background-position: -100% 0;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: .2;
+      }
+    }
+
+    /* ── Form Section ── */
+    .form-section {
+      padding: 38px 44px;
+      border-bottom: 1px solid var(--border);
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity .6s cubic-bezier(.22, 1, .36, 1), transform .6s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .form-section.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    .form-section:last-of-type {
+      border-bottom: none;
+    }
+
+    .fs-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 6px;
+    }
+
+    .fs-icon {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+      transition: border-color .3s, background .3s;
+    }
+
+    .form-section:hover .fs-icon {
+      border-color: var(--cyan);
+      background: rgba(0, 240, 255, .07);
+    }
+
+    .fs-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 2px;
+      color: var(--text);
+    }
+
+    .fs-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      padding-left: 48px;
+    }
+
+    /* ── Field Rows ── */
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .row.one {
+      grid-template-columns: 1fr;
+    }
+
+    .row.three {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field label {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .req {
+      color: var(--cyan);
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .opt {
+      color: var(--border2);
+      font-size: 8px;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      padding: 13px 16px;
+      outline: none;
+      cursor: none;
+      width: 100%;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      appearance: none;
+    }
+
+    .field input::placeholder,
+    .field textarea::placeholder {
+      color: var(--muted);
+      opacity: .55;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(0, 240, 255, .09);
+      background: rgba(13, 30, 54, .9);
+    }
+
+    .field input.valid {
+      border-color: var(--green);
+    }
+
+    .field input.invalid {
+      border-color: var(--red);
+    }
+
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a8ab0' stroke-width='1.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      background-color: var(--surface2);
+      padding-right: 40px;
+    }
+
+    .field select option {
+      background: var(--surface2);
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.65;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hint.ok {
+      color: var(--green);
+    }
+
+    .hint.error {
+      color: var(--red);
+    }
+
+    /* ── Tag Input ── */
+    .tags-wrap {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      min-height: 48px;
+      padding: 8px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      cursor: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .tags-wrap:focus-within {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(0, 240, 255, .09);
+    }
+
+    .tag-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 240, 255, .1);
+      border: 1px solid rgba(0, 240, 255, .25);
+      color: var(--cyan);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      animation: chipPop .25s cubic-bezier(.22, 1, .36, 1) both;
+    }
+
+    @keyframes chipPop {
+      from {
+        opacity: 0;
+        transform: scale(.8)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .tag-chip button {
+      background: none;
+      border: none;
+      color: var(--cyan);
+      cursor: none;
+      font-size: 12px;
+      line-height: 1;
+      padding: 0;
+      opacity: .6;
+      transition: opacity .15s;
+    }
+
+    .tag-chip button:hover {
+      opacity: 1;
+    }
+
+    .tag-input {
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      min-width: 120px;
+      flex: 1;
+      padding: 4px 6px;
+      cursor: none;
+    }
+
+    .tag-input::placeholder {
+      color: var(--muted);
+      opacity: .5;
+    }
+
+    .tag-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ═══════════════════════════════════════════════
+   FILE UPLOAD ZONE
+═══════════════════════════════════════════════ */
+    .upload-zone {
+      border: 2px dashed var(--border2);
+      background: rgba(13, 30, 54, .5);
+      padding: 52px 32px;
+      text-align: center;
+      transition: border-color .3s, background .3s, transform .2s;
+      position: relative;
+      overflow: hidden;
+      cursor: none;
+      margin-bottom: 14px;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+      border-color: var(--cyan);
+      background: rgba(0, 240, 255, .04);
+      transform: scale(1.005);
+    }
+
+    .upload-zone.has-file {
+      border-style: solid;
+      border-color: var(--green);
+      background: rgba(0, 255, 157, .03);
+    }
+
+    /* rotating conic glow */
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      top: -60%;
+      left: -60%;
+      width: 220%;
+      height: 220%;
+      background: conic-gradient(transparent 0deg, rgba(0, 240, 255, .04) 60deg, transparent 120deg);
+      animation: rotateBg 9s linear infinite;
+      pointer-events: none;
+    }
+
+    .upload-zone.has-file::before {
+      display: none;
+    }
+
+    @keyframes rotateBg {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .uz-icon {
+      font-size: 42px;
+      display: block;
+      margin-bottom: 14px;
+    }
+
+    .uz-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px;
+      letter-spacing: 2px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .uz-sub {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 22px;
+    }
+
+    .uz-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 12px 30px;
+      background: transparent;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      cursor: none;
+      transition: background .2s, box-shadow .2s;
+    }
+
+    .uz-btn:hover {
+      background: var(--cyan-dim);
+      box-shadow: var(--glow-c);
+    }
+
+    .uz-constraints {
+      display: flex;
+      justify-content: center;
+      gap: 22px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .uz-rule {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .uz-rule::before {
+      content: '';
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--border2);
+      flex-shrink: 0;
+    }
+
+    /* file preview row */
+    .file-preview {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 255, 157, .04);
+      border: 1px solid var(--green);
+      padding: 14px 20px;
+      margin-bottom: 14px;
+      animation: fadeUp .4s both;
+    }
+
+    .file-preview.show {
+      display: flex;
+    }
+
+    .fp-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .fp-icon {
+      font-size: 24px;
+    }
+
+    .fp-name {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--green);
+    }
+
+    .fp-size {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .fp-remove {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 7px 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: none;
+      transition: border-color .2s, color .2s;
+    }
+
+    .fp-remove:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* IPFS badge */
+    .ipfs-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      margin-top: 12px;
+      background: rgba(191, 95, 255, .06);
+      border: 1px solid rgba(191, 95, 255, .22);
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--purple);
+    }
+
+    .ipfs-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--purple);
+      animation: blink 2s infinite;
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════════
+   SUBMIT
+═══════════════════════════════════════════════ */
+    .submit-wrap {
+      padding: 32px 44px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 22px;
+      cursor: none;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--cyan), #0090ff);
+      color: var(--bg);
+      border: none;
+      position: relative;
+      overflow: hidden;
+      clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+      transition: box-shadow .3s, transform .2s;
+    }
+
+    .btn-submit::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, .18);
+      transform: translateX(-100%);
+      transition: transform .4s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .btn-submit:hover::before {
+      transform: translateX(0);
+    }
+
+    .btn-submit:hover {
+      box-shadow: 0 0 60px rgba(0, 240, 255, .55), 0 0 120px rgba(0, 240, 255, .2);
+      transform: translateY(-2px);
+    }
+
+    .btn-submit::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -60%;
+      width: 35%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .22), transparent);
+      animation: shimmer 2.5s infinite;
+    }
+
+    @keyframes shimmer {
+      to {
+        left: 140%
+      }
+    }
+
+    .submit-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 18px;
+      padding: 14px 16px;
+      background: rgba(255, 225, 53, .04);
+      border: 1px solid rgba(255, 225, 53, .18);
+    }
+
+    .notice-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+
+    .notice-text {
+      font-size: 11px;
+      color: #9ab8cc;
+      line-height: 1.65;
+    }
+
+    .notice-text strong {
+      color: var(--gold);
+    }
+
+    /* ═══════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════ */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .side-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 26px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .3s;
+    }
+
+    .side-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+    }
+
+    .s-cyan::before {
+      background: linear-gradient(90deg, var(--cyan), #0090ff);
+    }
+
+    .s-gold::before {
+      background: linear-gradient(90deg, var(--gold), #ff9500);
+    }
+
+    .s-purple::before {
+      background: linear-gradient(90deg, var(--purple), #7040ff);
+    }
+
+    .s-green::before {
+      background: linear-gradient(90deg, var(--green), #00c070);
+    }
+
+    .side-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 2px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .side-title span {
+      font-size: 16px;
+    }
+
+    /* requirements list */
+    .req-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .req-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 12px;
+      color: #8ab0cc;
+      line-height: 1.55;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, .02);
+      border: 1px solid transparent;
+      transition: border-color .25s, background .25s;
+    }
+
+    .req-item:hover {
+      border-color: var(--border);
+      background: rgba(0, 240, 255, .02);
+    }
+
+    .ri-badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .ri-r .ri-badge {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: rgba(0, 240, 255, .08);
+    }
+
+    .ri-o .ri-badge {
+      border-color: var(--border2);
+      color: var(--muted);
+    }
+
+    .ri-name {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    /* live preview cert card */
+    .prev-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .prev-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--cyan), var(--purple), var(--gold));
+    }
+
+    /* scan animation on preview */
+    .prev-card::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, .4), transparent);
+      animation: scanPreview 4s linear infinite;
+    }
+
+    @keyframes scanPreview {
+      from {
+        top: 0;
+        opacity: .6
+      }
+
+      to {
+        top: 100%;
+        opacity: 0
+      }
+    }
+
+    .pv-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .pv-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 7px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 9px;
+      border: 1px solid var(--green);
+      color: var(--green);
+      background: rgba(0, 255, 157, .06);
+    }
+
+    .pv-id {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      color: var(--muted);
+    }
+
+    .pv-course {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 1px;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .pv-type {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .pv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .pv-field label {
+      font-family: 'Space Mono', monospace;
+      font-size: 7px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .pv-field span {
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .pv-hash {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      color: var(--cyan);
+      background: rgba(0, 240, 255, .05);
+      border: 1px solid rgba(0, 240, 255, .15);
+      padding: 7px 10px;
+      margin-top: 12px;
+      word-break: break-all;
+      display: none;
+    }
+
+    /* chain status */
+    .chain-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .chain-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, .02);
+      border: 1px solid var(--border);
+    }
+
+    .ci-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .ci-dot.live {
+      background: var(--green);
+      animation: blink 1.4s infinite;
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    .ci-dot.idle {
+      background: var(--border2);
+    }
+
+    .ci-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .ci-val {
+      font-size: 11px;
+      color: var(--text);
+      margin-top: 2px;
+    }
+
+    /* ═══════════════════════════════════════════════
+   SUCCESS MODAL
+═══════════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(4, 8, 15, .9);
+      backdrop-filter: blur(14px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+      animation: fadeUp .4s both;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 54px 46px;
+      text-align: center;
+      max-width: 540px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      animation: modalPop .5s cubic-bezier(.22, 1, .36, 1) both;
+    }
+
+    .modal::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--cyan), var(--green), var(--gold));
+    }
+
+    @keyframes modalPop {
+      from {
+        opacity: 0;
+        transform: scale(.92) translateY(20px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .modal-emoji {
+      font-size: 54px;
+      margin-bottom: 18px;
+      display: block;
+      animation: iconBounce .6s .2s cubic-bezier(.22, 1, .36, 1) both;
+    }
+
+    @keyframes iconBounce {
+      from {
+        transform: scale(0) rotate(-20deg)
+      }
+
+      to {
+        transform: none
+      }
+    }
+
+    .modal-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 46px;
+      letter-spacing: 2px;
+      color: var(--green);
+      text-shadow: 0 0 40px rgba(0, 255, 157, .4);
+      margin-bottom: 10px;
+    }
+
+    .modal-sub {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 26px;
+    }
+
+    .modal-data {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--cyan);
+      background: rgba(0, 240, 255, .05);
+      border: 1px solid rgba(0, 240, 255, .18);
+      padding: 14px 16px;
+      text-align: left;
+      margin-bottom: 26px;
+      line-height: 1.8;
+    }
+
+    .modal-data label {
+      display: block;
+      font-size: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 3px;
+      margin-top: 10px;
+    }
+
+    .modal-data label:first-child {
+      margin-top: 0;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .mbtn-p {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 14px 32px;
+      background: var(--cyan);
+      color: var(--bg);
+      border: none;
+      cursor: none;
+      font-weight: 700;
+      transition: box-shadow .2s, transform .2s;
+    }
+
+    .mbtn-p:hover {
+      box-shadow: var(--glow-c);
+      transform: translateY(-1px);
+    }
+
+    .mbtn-s {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 14px 32px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      cursor: none;
+      transition: border-color .2s, color .2s;
+    }
+
+    .mbtn-s:hover {
+      border-color: var(--muted);
+      color: var(--text);
+    }
+
+    /* ═══════════════════════════════════════════════
+   SCROLL REVEAL
+═══════════════════════════════════════════════ */
+    .reveal {
+      opacity: 0;
+      transform: translateY(26px);
+      transition: opacity .7s cubic-bezier(.22, 1, .36, 1), transform .7s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .reveal.from-left {
+      transform: translateX(-40px);
+    }
+
+    .reveal.from-right {
+      transform: translateX(40px);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    @media(max-width:1080px) {
+      nav {
+        padding: 16px 24px;
+      }
+
+      .nav-breadcrumb {
+        display: none;
+      }
+
+      .page {
+        padding: 96px 24px 60px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .row.three {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media(max-width:580px) {
+
+      .row,
+      .row.three {
+        grid-template-columns: 1fr;
+      }
+
+      .progress-bar {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- CURSOR -->
+  <div id="cur-outer">
+    <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="12" width="12" height="10" rx="5" stroke="#00f0ff" stroke-width="2" />
+      <rect x="19" y="12" width="12" height="10" rx="5" stroke="#ffe135" stroke-width="2" />
+      <line x1="15" y1="17" x2="19" y2="17" stroke="#00ff9d" stroke-width="2.2" />
+    </svg>
+  </div>
+  <div id="cur-inner"></div>
+
+  <!-- CANVAS + GRID -->
+  <canvas id="bg"></canvas>
+  <div class="grid-overlay"></div>
+
+  <!-- SUCCESS MODAL -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal">
+      <span class="modal-emoji">🎉</span>
+      <div class="modal-title">NFT MINTED!</div>
+      <p class="modal-sub">
+        Certificate successfully minted as an NFT on the blockchain.<br>
+        The student will receive it in their wallet shortly.
+      </p>
+      <div class="modal-data" id="modalData">
+        <label>NFT Token ID</label>
+        <span id="mToken">—</span>
+        <label>IPFS Hash</label>
+        <span id="mIpfs">—</span>
+        <label>Transaction Hash</label>
+        <span id="mTx">—</span>
+      </div>
+      <div class="modal-actions">
+        <button class="mbtn-p" onclick="resetForm()">Issue Another</button>
+        <button class="mbtn-s" onclick="closeModal()">View Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <a href="index.html" class="logo">CERT<span>CHAIN</span></a>
+    <div class="nav-breadcrumb">
+      <span>Dashboard</span>
+      <span class="sep">/</span>
+      <span>Organization Info</span>
+      <span class="sep">/</span>
+      <span class="active">Certificate Details</span>
+    </div>
+    <div class="nav-right">
+      <div class="org-badge">
+        <div class="org-dot"></div><span id="orgNameDisplay">Organization</span>
+      </div>
+      <button class="btn-nav">← Back</button>
+    </div>
+  </nav>
+
+  <!-- PAGE -->
+  <div class="page">
+
+    <!-- HEADER -->
+    <div class="page-header">
+      <div class="page-eyebrow">
+        <span>// Step 2 of 3</span>
+        <div class="ey-line"></div>
+      </div>
+      <h1 class="page-title">CERTIFICATE<br><em>DETAILS</em></h1>
+      <p class="page-sub">Enter the certificate information below. This data will be stored permanently on the
+        blockchain and embedded inside the NFT metadata.</p>
+
+      <div class="progress-bar">
+        <div class="prog-step done">
+          <div class="prog-num">✓</div><span>Organization Info</span>
+        </div>
+        <div class="prog-line done"></div>
+        <div class="prog-step active">
+          <div class="prog-num">2</div><span>Certificate Details</span>
+        </div>
+        <div class="prog-line"></div>
+        <div class="prog-step">
+          <div class="prog-num">3</div><span>Mint NFT</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN LAYOUT -->
+    <div class="layout">
+
+      <!-- ══ FORM PANEL ══ -->
+      <div class="form-panel">
+
+        <!-- ① CERTIFICATE DETAILS -->
+        <div class="form-section" id="sec1">
+          <div class="fs-head">
+            <div class="fs-icon">📜</div>
+            <div class="fs-title">Certificate Information</div>
+          </div>
+          <p class="fs-sub">Core details that will appear on the certificate and be stored on-chain.</p>
+
+          <!-- Student name -->
+          <div class="row one">
+            <div class="field">
+              <label>Student Full Name <span class="req">*</span></label>
+              <input type="text" id="studentName" placeholder="e.g. Satoshi Nakamoto" oninput="syncPreview()">
+            </div>
+          </div>
+
+          <!-- Course name -->
+          <div class="row one">
+            <div class="field">
+              <label>Course / Program Name <span class="req">*</span></label>
+              <input type="text" id="courseName" placeholder="e.g. Full Stack Web3 Bootcamp" oninput="syncPreview()">
+            </div>
+          </div>
+
+          <!-- Type + Category -->
+          <div class="row">
+            <div class="field">
+              <label>Certificate Type <span class="req">*</span></label>
+              <select id="certType" onchange="syncPreview()">
+                <option value="" disabled selected>Select type</option>
+                <option>Course Completion</option>
+                <option>Internship</option>
+                <option>Workshop</option>
+                <option>Degree</option>
+                <option>Diploma</option>
+                <option>Hackathon Participation</option>
+                <option>Achievement Award</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Field / Domain <span class="req">*</span></label>
+              <select id="certDomain" onchange="syncPreview()">
+                <option value="" disabled selected>Select domain</option>
+                <option>Blockchain / Web3</option>
+                <option>Computer Science</option>
+                <option>Data Science / AI</option>
+                <option>Cybersecurity</option>
+                <option>Design / UX</option>
+                <option>Business / Management</option>
+                <option>Engineering</option>
+                <option>Arts & Humanities</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dates -->
+          <div class="row three">
+            <div class="field">
+              <label>Issue Date <span class="req">*</span></label>
+              <input type="date" id="issueDate" oninput="syncPreview()">
+            </div>
+            <div class="field">
+              <label>Course Start Date <span class="opt">(optional)</span></label>
+              <input type="date" id="startDate">
+            </div>
+            <div class="field">
+              <label>Course End Date <span class="opt">(optional)</span></label>
+              <input type="date" id="endDate">
+            </div>
+          </div>
+
+          <!-- Grade + Duration -->
+          <div class="row">
+            <div class="field">
+              <label>Grade / Score <span class="opt">(optional)</span></label>
+              <input type="text" id="grade" placeholder="e.g. A+ · 95% · Distinction" oninput="syncPreview()">
+            </div>
+            <div class="field">
+              <label>Duration <span class="opt">(optional)</span></label>
+              <input type="text" id="duration" placeholder="e.g. 3 Months · 40 Hours" oninput="syncPreview()">
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="row one">
+            <div class="field">
+              <label>Description <span class="opt">(optional)</span></label>
+              <textarea id="certDesc"
+                placeholder="Brief description of the course or achievement, skills covered, or any relevant context..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- ② SKILLS / TAGS -->
+        <div class="form-section" id="sec2" style="transition-delay:.1s">
+          <div class="fs-head">
+            <div class="fs-icon">🏷️</div>
+            <div class="fs-title">Skills & Tags</div>
+          </div>
+          <p class="fs-sub">Tags are stored as searchable NFT metadata. Employers can filter by skill.</p>
+
+          <div class="field">
+            <label>Add Skills <span class="opt">(optional — press Enter or comma to add)</span></label>
+            <div class="tags-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
+              <input type="text" class="tag-input" id="tagInput" placeholder="Type a skill and press Enter...">
+            </div>
+            <p class="tag-hint">e.g. Solidity · Smart Contracts · React · IPFS · Web3.js</p>
+          </div>
+        </div>
+
+        <!-- ③ CERTIFICATE FILE -->
+        <div class="form-section" id="sec3" style="transition-delay:.2s">
+          <div class="fs-head">
+            <div class="fs-icon">📁</div>
+            <div class="fs-title">Certificate File</div>
+          </div>
+          <p class="fs-sub">Upload the certificate PDF. It will be pinned to IPFS and its content hash embedded in the
+            NFT.</p>
+
+          <!-- file preview (hidden until file selected) -->
+          <div class="file-preview" id="filePreview">
+            <div class="fp-left">
+              <span class="fp-icon">📄</span>
+              <div>
+                <div class="fp-name" id="fpName">certificate.pdf</div>
+                <div class="fp-size" id="fpSize">—</div>
+              </div>
+            </div>
+            <button class="fp-remove" onclick="removeFile()">✕ Remove</button>
+          </div>
+
+          <!-- drop zone -->
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('certFile').click()"
+            ondragover="event.preventDefault(); this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+            <span class="uz-icon">📂</span>
+            <div class="uz-title">Drop Certificate Here</div>
+            <p class="uz-sub">Drag & drop your PDF file, or click to browse.<br>The file will be automatically uploaded
+              to IPFS.</p>
+            <button class="uz-btn" onclick="event.stopPropagation(); document.getElementById('certFile').click()">Browse
+              Files</button>
+            <div class="uz-constraints">
+              <span class="uz-rule">PDF only</span>
+              <span class="uz-rule">Max 10 MB</span>
+              <span class="uz-rule">Single file</span>
+            </div>
+          </div>
+          <input type="file" id="certFile" accept=".pdf" style="display:none" onchange="handleFile(this)">
+
+          <div class="ipfs-badge">
+            <div class="ipfs-dot"></div>
+            <span>File will be pinned to IPFS via Pinata · Content hash embedded in NFT metadata</span>
+          </div>
+        </div>
+
+        <!-- SUBMIT -->
+        <div class="submit-wrap">
+          <button class="btn-submit" id="submitBtn" onclick="submitForm()">
+            ⛓&nbsp;&nbsp;Mint Certificate as NFT
+          </button>
+          <div class="submit-notice">
+            <span class="notice-icon">⚠️</span>
+            <div class="notice-text">
+              <strong>Important:</strong> Once minted, certificate data written to the blockchain is
+              <strong>permanent and immutable</strong>. Please verify all details carefully before submitting.
+              You may revoke the certificate later, but on-chain records cannot be deleted.
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- end form panel -->
+
+      <!-- ══ SIDEBAR ══ -->
+      <div class="sidebar">
+
+        <!-- Requirements -->
+        <div class="side-card s-gold reveal from-right">
+          <div class="side-title"><span>📋</span>Requirements</div>
+          <div class="req-list">
+            <div class="req-item ri-r">
+              <div class="ri-badge">R</div>
+              <div>
+                <div class="ri-name">Course / Program Name</div>Full official name of the course or program
+              </div>
+            </div>
+            <div class="req-item ri-r">
+              <div class="ri-badge">R</div>
+              <div>
+                <div class="ri-name">Certificate Type</div>Completion, internship, degree, etc.
+              </div>
+            </div>
+            <div class="req-item ri-r">
+              <div class="ri-badge">R</div>
+              <div>
+                <div class="ri-name">Field / Domain</div>Subject area of the certificate
+              </div>
+            </div>
+            <div class="req-item ri-r">
+              <div class="ri-badge">R</div>
+              <div>
+                <div class="ri-name">Issue Date</div>Official date of certificate issuance
+              </div>
+            </div>
+            <div class="req-item ri-r">
+              <div class="ri-badge">R</div>
+              <div>
+                <div class="ri-name">Certificate PDF</div>Original certificate file, max 10 MB
+              </div>
+            </div>
+            <div class="req-item ri-o">
+              <div class="ri-badge">O</div>
+              <div>
+                <div class="ri-name">Grade / Duration</div>Score or time spent on the program
+              </div>
+            </div>
+            <div class="req-item ri-o">
+              <div class="ri-badge">O</div>
+              <div>
+                <div class="ri-name">Skills / Tags</div>Searchable metadata on the NFT
+              </div>
+            </div>
+            <div class="req-item ri-o">
+              <div class="ri-badge">O</div>
+              <div>
+                <div class="ri-name">Description</div>Additional context about the certificate
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Preview -->
+        <div class="side-card s-purple reveal from-right" style="transition-delay:.12s">
+          <div class="side-title"><span>👁</span>Live Preview</div>
+          <div class="prev-card">
+            <div class="pv-top">
+              <span class="pv-badge">⬡ NFT Certificate</span>
+              <span class="pv-id">#NFT-—</span>
+            </div>
+            <div class="pv-course" id="pvCourse">Course Name</div>
+            <div class="pv-type" id="pvType">Type · Domain</div>
+            <div class="pv-grid">
+              <div class="pv-field"><label>Issue Date</label><span id="pvDate">—</span></div>
+              <div class="pv-field"><label>Grade</label><span id="pvGrade">—</span></div>
+              <div class="pv-field"><label>Duration</label><span id="pvDuration">—</span></div>
+              <div class="pv-field"><label>Network</label><span style="color:var(--purple)">Polygon</span></div>
+            </div>
+            <div class="pv-hash" id="pvHash"></div>
+          </div>
+        </div>
+
+        <!-- Chain Status -->
+        <div class="side-card s-green reveal from-right" style="transition-delay:.24s">
+          <div class="side-title"><span>⛓</span>Chain Status</div>
+          <div class="chain-list">
+            <div class="chain-item">
+              <div class="ci-dot live"></div>
+              <div>
+                <div class="ci-label">Polygon Mainnet</div>
+                <div class="ci-val">Block #58,291,047 · Live</div>
+              </div>
+            </div>
+            <div class="chain-item">
+              <div class="ci-dot live"></div>
+              <div>
+                <div class="ci-label">IPFS / Pinata</div>
+                <div class="ci-val">Connected · Ready to pin</div>
+              </div>
+            </div>
+            <div class="chain-item">
+              <div class="ci-dot live"></div>
+              <div>
+                <div class="ci-label">Smart Contract</div>
+                <div class="ci-val">0xCC32…F4b1 · Active</div>
+              </div>
+            </div>
+            <div class="chain-item">
+              <div class="ci-dot idle"></div>
+              <div>
+                <div class="ci-label">MetaMask</div>
+                <div class="ci-val">Connect to proceed</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- end sidebar -->
+
+    </div>
+  </div>
+  <!-- end page -->
+
+  <script>
+    /* ─── CURSOR ─── */
+    const outer = document.getElementById('cur-outer'), inner = document.getElementById('cur-inner');
+    let mx = 0, my = 0, ox = 0, oy = 0, lastSpark = 0;
+    const sparkColors = ['#00f0ff', '#ffe135', '#00ff9d', '#bf5fff', '#ff5580'];
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      inner.style.left = mx + 'px'; inner.style.top = my + 'px';
+      const now = Date.now();
+      if (now - lastSpark > 55) {
+        lastSpark = now;
+        const s = document.createElement('div');
+        s.className = 'spark';
+        const tx = (Math.random() - .5) * 38, ty = (Math.random() - .5) * 38, sz = 3 + Math.random() * 5;
+        s.style.cssText = `left:${mx}px;top:${my}px;width:${sz}px;height:${sz}px;background:${sparkColors[Math.floor(Math.random() * sparkColors.length)]};--tx:${tx}px;--ty:${ty}px;box-shadow:0 0 ${sz * 2}px currentColor`;
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 700);
+      }
+    });
+    (function loop() { ox += (mx - ox) * .09; oy += (my - oy) * .09; outer.style.left = ox + 'px'; outer.style.top = oy + 'px'; requestAnimationFrame(loop); })();
+    document.querySelectorAll('button,a,input,select,textarea,.upload-zone').forEach(el => {
+      el.addEventListener('mouseenter', () => { inner.style.width = '20px'; inner.style.height = '20px'; inner.style.background = 'var(--cyan)'; outer.style.transform = 'translate(-50%,-50%) scale(1.4)'; });
+      el.addEventListener('mouseleave', () => { inner.style.width = '9px'; inner.style.height = '9px'; inner.style.background = 'var(--gold)'; outer.style.transform = 'translate(-50%,-50%) scale(1)'; });
+    });
+
+    /* ─── CANVAS ─── */
+    const canvas = document.getElementById('bg'), ctx = canvas.getContext('2d');
+    let W = canvas.width = innerWidth, H = canvas.height = innerHeight;
+    window.addEventListener('resize', () => { W = canvas.width = innerWidth; H = canvas.height = innerHeight; });
+    const pts = Array.from({ length: 75 }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      vx: (Math.random() - .5) * .32, vy: (Math.random() - .5) * .32,
+      r: Math.random() * 1.2 + .3, a: Math.random() * .35 + .1
+    }));
+    (function draw() {
+      ctx.clearRect(0, 0, W, H);
+      pts.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > W) p.vx *= -1;
+        if (p.y < 0 || p.y > H) p.vy *= -1;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,240,255,${p.a})`; ctx.fill();
+      });
+      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y, d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 125) { ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.strokeStyle = `rgba(0,240,255,${.1 * (1 - d / 125)})`; ctx.lineWidth = .5; ctx.stroke(); }
+      }
+      requestAnimationFrame(draw);
+    })();
+
+    /* ─── SCROLL REVEAL ─── */
+    const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }), { threshold: .08 });
+    document.querySelectorAll('.reveal,.form-section').forEach(el => obs.observe(el));
+
+    /* ─── TAG INPUT ─── */
+    const tags = [];
+    const tagInput = document.getElementById('tagInput');
+    tagInput.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
+        e.preventDefault();
+        addTag(tagInput.value.replace(',', '').trim());
+        tagInput.value = '';
+      } else if (e.key === 'Backspace' && !tagInput.value && tags.length) {
+        removeTag(tags[tags.length - 1]);
+      }
+    });
+    function addTag(text) {
+      if (!text || tags.includes(text) || tags.length >= 12) return;
+      tags.push(text);
+      const chip = document.createElement('div');
+      chip.className = 'tag-chip'; chip.dataset.tag = text;
+      chip.innerHTML = `${text}<button onclick="removeTag('${text}')" title="Remove">×</button>`;
+      document.getElementById('tagsWrap').insertBefore(chip, tagInput);
+    }
+    function removeTag(text) {
+      const i = tags.indexOf(text);
+      if (i > -1) tags.splice(i, 1);
+      const chip = document.querySelector(`.tag-chip[data-tag="${text}"]`);
+      if (chip) chip.remove();
+    }
+
+    /* ─── LIVE PREVIEW SYNC ─── */
+    function syncPreview() {
+      const course = document.getElementById('courseName').value;
+      const type = document.getElementById('certType').value;
+      const domain = document.getElementById('certDomain').value;
+      const date = document.getElementById('issueDate').value;
+      const grade = document.getElementById('grade').value;
+      const duration = document.getElementById('duration').value;
+
+      document.getElementById('pvCourse').textContent = course || 'Course Name';
+      document.getElementById('pvType').textContent = [type, domain].filter(Boolean).join(' · ') || 'Type · Domain';
+      document.getElementById('pvDate').textContent = date ? new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+      document.getElementById('pvGrade').textContent = grade || '—';
+      document.getElementById('pvDuration').textContent = duration || '—';
+    }
+
+    /* ─── FILE HANDLING ─── */
+    function handleFile(input) {
+      if (input.files[0]) showFile(input.files[0]);
+    }
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('uploadZone').classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === 'application/pdf') showFile(file);
+      else alert('Please upload a PDF file only.');
+    }
+    function showFile(file) {
+      if (file.size > 10 * 1024 * 1024) { alert('File size must be under 10 MB.'); return; }
+      document.getElementById('uploadZone').classList.add('has-file');
+      document.getElementById('fpName').textContent = file.name;
+      document.getElementById('fpSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+      document.getElementById('filePreview').classList.add('show');
+      const fakeHash = 'Qm' + Math.random().toString(36).substring(2, 12).toUpperCase() + 'xRt3K';
+      const hashEl = document.getElementById('pvHash');
+      hashEl.textContent = 'IPFS: ' + fakeHash;
+      hashEl.style.display = 'block';
+    }
+    function removeFile() {
+      document.getElementById('uploadZone').classList.remove('has-file');
+      document.getElementById('filePreview').classList.remove('show');
+      document.getElementById('certFile').value = '';
+      const hashEl = document.getElementById('pvHash');
+      hashEl.style.display = 'none'; hashEl.textContent = '';
+    }
+
+    /* ─── FORM SUBMIT ─── */
+    async function submitForm() {
+      // required field check
+      const required = [
+        { id: 'studentName', label: 'Student Full Name' },
+        { id: 'courseName', label: 'Course / Program Name' },
+        { id: 'certType', label: 'Certificate Type' },
+        { id: 'certDomain', label: 'Field / Domain' },
+        { id: 'issueDate', label: 'Issue Date' },
+      ];
+      for (const r of required) {
+        const el = document.getElementById(r.id);
+        if (!el || !el.value.trim()) {
+          el.focus(); el.style.borderColor = 'var(--red)';
+          setTimeout(() => el.style.borderColor = '', 2200);
+          alert('Please fill in: ' + r.label); return;
+        }
+      }
+      // check file
+      const fileInput = document.getElementById('certFile');
+      if (!fileInput.files[0]) {
+        document.getElementById('uploadZone').style.borderColor = 'var(--red)';
+        setTimeout(() => document.getElementById('uploadZone').style.borderColor = '', 2200);
+        alert('Please upload the certificate PDF.'); return;
+      }
+
+      // animate button through stages
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+
+      btn.textContent = '⏳  Uploading to IPFS...';
+      btn.style.background = 'linear-gradient(135deg,var(--purple),#7040ff)';
+
+      try {
+        // Read the actual input values
+        const studentName = document.getElementById('studentName').value;
+        const courseName = document.getElementById('courseName').value;
+        const issueDate = document.getElementById('issueDate').value;
+        
+        btn.textContent = '⛓  Minting NFT on Local Chain...';
+        btn.style.background = 'linear-gradient(135deg,var(--gold),#ff9500)';
+
+        // Trigger the actual blockchain transaction from org.js
+        const txHash = await window.mintCertificateOnChain(studentName, courseName, issueDate);
+        
+        btn.textContent = '✓  Done!';
+        btn.style.background = 'linear-gradient(135deg,var(--green),#00c070)';
+
+        const tid = '#NFT-' + Math.floor(1000 + Math.random() * 8999);
+        const ipfs = 'Qm' + Math.random().toString(36).substring(2, 14).toUpperCase() + 'xRt3KpLmN';
+
+        document.getElementById('mToken').textContent = tid;
+        document.getElementById('mIpfs').textContent = ipfs;
+        document.getElementById('mTx').textContent = txHash;
+        document.getElementById('successModal').classList.add('show');
+      } catch (err) {
+        alert("Transaction Failed: " + err.message);
+        btn.disabled = false;
+        btn.textContent = '⛓\u00A0\u00A0Mint Certificate as NFT';
+        btn.style.background = '';
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('successModal').classList.remove('show');
+    }
+    function resetForm() {
+      closeModal();
+      document.querySelectorAll('input,select,textarea').forEach(el => el.value = '');
+      tags.length = 0;
+      document.querySelectorAll('.tag-chip').forEach(c => c.remove());
+      removeFile();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = false;
+      btn.textContent = '⛓\u00A0\u00A0Mint Certificate as NFT';
+      btn.style.background = '';
+      syncPreview();
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
+
+  <script src="../frontend.js/config.js"></script>
+
+  <script src="../frontend.js/org.js"></script>
+</body>
+
+</html>

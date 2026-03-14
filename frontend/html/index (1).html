@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CertChain — NFT Certificate Verification</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ─────────────────────────────────────────
+   ROOT
+───────────────────────────────────────── */
+    :root {
+      --bg: #04080f;
+      --surface: #0a1628;
+      --border: #1e3a5f;
+      --cyan: #00f0ff;
+      --cyan-dim: rgba(0, 240, 255, 0.10);
+      --gold: #ffe135;
+      --green: #00ff9d;
+      --purple: #bf5fff;
+      --text: #eaf6ff;
+      --muted: #5a8ab0;
+      --glow-c: 0 0 40px rgba(0, 240, 255, 0.4);
+      --glow-g: 0 0 40px rgba(255, 225, 53, 0.45);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* ─────────────────────────────────────────
+   CUSTOM CURSOR — chain link + gold dot + sparks
+───────────────────────────────────────── */
+    #cur-outer {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      width: 34px;
+      height: 34px;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -50%);
+      transition: transform .25s;
+    }
+
+    #cur-outer svg {
+      width: 34px;
+      height: 34px;
+      animation: spinChain 2.8s linear infinite;
+      filter: drop-shadow(0 0 7px var(--cyan));
+    }
+
+    #cur-inner {
+      position: fixed;
+      pointer-events: none;
+      z-index: 10000;
+      width: 9px;
+      height: 9px;
+      background: var(--gold);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 14px var(--gold), 0 0 28px var(--gold);
+      transition: width .12s, height .12s, background .15s;
+    }
+
+    .spark {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9997;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: sparkOut .7s ease-out forwards;
+    }
+
+    @keyframes spinChain {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes sparkOut {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0);
+      }
+    }
+
+    /* ─────────────────────────────────────────
+   SCROLLBAR
+───────────────────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--cyan);
+      border-radius: 2px;
+    }
+
+    /* ─────────────────────────────────────────
+   CANVAS BG
+───────────────────────────────────────── */
+    #bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* ─────────────────────────────────────────
+   NAV — logo only, centered
+───────────────────────────────────────── */
+    nav {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 26px 64px;
+      transition: background .35s, border-color .35s;
+    }
+
+    nav.scrolled {
+      background: rgba(4, 8, 15, 0.93);
+      backdrop-filter: blur(22px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 30px;
+      letter-spacing: 6px;
+      color: var(--cyan);
+      text-decoration: none;
+      text-shadow: var(--glow-c);
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+
+    .logo span {
+      color: var(--gold);
+      text-shadow: var(--glow-g);
+    }
+
+    @keyframes logoPulse {
+
+      0%,
+      100% {
+        text-shadow: var(--glow-c);
+      }
+
+      50% {
+        text-shadow: 0 0 70px rgba(0, 240, 255, .7), 0 0 140px rgba(0, 240, 255, .3);
+      }
+    }
+
+    /* ─────────────────────────────────────────
+   HERO
+───────────────────────────────────────── */
+    #hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 40px;
+      overflow: hidden;
+    }
+
+    /* animated grid */
+    #hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridDrift 18s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes gridDrift {
+      from {
+        background-position: 0 0;
+      }
+
+      to {
+        background-position: 60px 60px;
+      }
+    }
+
+    /* radial glow */
+    #hero::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -52%);
+      width: 900px;
+      height: 900px;
+      background: radial-gradient(ellipse,
+          rgba(0, 240, 255, 0.08) 0%,
+          rgba(191, 95, 255, 0.06) 40%,
+          transparent 70%);
+      animation: glowBreath 5s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes glowBreath {
+
+      0%,
+      100% {
+        transform: translate(-50%, -52%) scale(1);
+        opacity: .8;
+      }
+
+      50% {
+        transform: translate(-50%, -52%) scale(1.12);
+        opacity: 1;
+      }
+    }
+
+    /* orbiting rings */
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .ring-1 {
+      width: 520px;
+      height: 520px;
+      border-color: rgba(0, 240, 255, .07);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: orbit1 20s linear infinite;
+    }
+
+    .ring-2 {
+      width: 740px;
+      height: 740px;
+      border-color: rgba(191, 95, 255, .06);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: orbit1 28s linear infinite reverse;
+    }
+
+    .ring-3 {
+      width: 960px;
+      height: 960px;
+      border-color: rgba(255, 225, 53, .04);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: orbit1 38s linear infinite;
+    }
+
+    @keyframes orbit1 {
+      to {
+        transform: translate(-50%, -50%) rotate(360deg);
+      }
+    }
+
+    /* floating hexagons */
+    .hex {
+      position: absolute;
+      pointer-events: none;
+      z-index: 1;
+      font-size: 18px;
+      opacity: .18;
+      animation: floatHex var(--d, 8s) ease-in-out infinite;
+    }
+
+    @keyframes floatHex {
+
+      0%,
+      100% {
+        transform: translateY(0) rotate(0deg);
+      }
+
+      50% {
+        transform: translateY(-22px) rotate(20deg);
+      }
+    }
+
+    /* hero title */
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(90px, 14vw, 210px);
+      line-height: .86;
+      position: relative;
+      z-index: 2;
+      margin-bottom: 16px;
+    }
+
+    .hero-title .t1 {
+      display: block;
+      color: var(--text);
+      animation: slideInTop .9s .1s cubic-bezier(.22, 1, .36, 1) both;
+    }
+
+    .hero-title .t2 {
+      display: block;
+      color: var(--cyan);
+      text-shadow: 0 0 60px rgba(0, 240, 255, .6), 0 0 120px rgba(0, 240, 255, .2);
+      animation: slideInTop .9s .25s cubic-bezier(.22, 1, .36, 1) both;
+      position: relative;
+    }
+
+    /* glitch flicker on CHAIN */
+    .hero-title .t2::before,
+    .hero-title .t2::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      pointer-events: none;
+    }
+
+    .hero-title .t2::before {
+      color: var(--purple);
+      clip-path: polygon(0 30%, 100% 30%, 100% 50%, 0 50%);
+      animation: glitch1 4s infinite;
+      opacity: .6;
+    }
+
+    .hero-title .t2::after {
+      color: var(--gold);
+      clip-path: polygon(0 60%, 100% 60%, 100% 75%, 0 75%);
+      animation: glitch2 4s infinite;
+      opacity: .5;
+    }
+
+    @keyframes glitch1 {
+
+      0%,
+      92%,
+      100% {
+        transform: none;
+        opacity: 0;
+      }
+
+      93% {
+        transform: translateX(-4px);
+        opacity: .6;
+      }
+
+      95% {
+        transform: translateX(4px);
+        opacity: .6;
+      }
+
+      97% {
+        transform: translateX(-2px);
+        opacity: .6;
+      }
+    }
+
+    @keyframes glitch2 {
+
+      0%,
+      94%,
+      100% {
+        transform: none;
+        opacity: 0;
+      }
+
+      95% {
+        transform: translateX(3px);
+        opacity: .5;
+      }
+
+      97% {
+        transform: translateX(-3px);
+        opacity: .5;
+      }
+
+      99% {
+        transform: translateX(1px);
+        opacity: .5;
+      }
+    }
+
+    @keyframes slideInTop {
+      from {
+        opacity: 0;
+        transform: translateY(-40px) skewY(-3deg);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .hero-sub-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(22px, 4vw, 50px);
+      letter-spacing: 9px;
+      color: var(--gold);
+      text-shadow: 0 0 30px rgba(255, 225, 53, .5);
+      position: relative;
+      z-index: 2;
+      animation: slideInTop .9s .4s cubic-bezier(.22, 1, .36, 1) both;
+      margin-bottom: 48px;
+    }
+
+    /* login button only */
+    .hero-cta {
+      position: relative;
+      z-index: 2;
+      animation: fadeUp .8s .6s both;
+    }
+
+    .btn-login {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 20px 72px;
+      background: transparent;
+      color: var(--cyan);
+      border: 1.5px solid var(--cyan);
+      cursor: none;
+      font-weight: 700;
+      position: relative;
+      overflow: hidden;
+      clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+      transition: color .25s, box-shadow .25s, transform .2s;
+    }
+
+    .btn-login::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--cyan), #0090ff);
+      transform: translateX(-100%);
+      transition: transform .35s cubic-bezier(.22, 1, .36, 1);
+      z-index: -1;
+    }
+
+    .btn-login:hover::before {
+      transform: translateX(0);
+    }
+
+    .btn-login:hover {
+      color: var(--bg);
+      box-shadow: 0 0 60px rgba(0, 240, 255, .55), 0 0 120px rgba(0, 240, 255, .2);
+      transform: translateY(-3px);
+    }
+
+    /* button shimmer sweep */
+    .btn-login::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -60%;
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .25), transparent);
+      animation: shimmer 3s infinite;
+      z-index: 1;
+    }
+
+    @keyframes shimmer {
+      to {
+        left: 140%;
+      }
+    }
+
+    /* scroll hint */
+    .scroll-hint {
+      position: absolute;
+      bottom: 38px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      animation: fadeUp .7s 1.2s both;
+    }
+
+    .scroll-hint span {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .scroll-mouse {
+      width: 22px;
+      height: 36px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .scroll-mouse::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 8px;
+      background: var(--cyan);
+      border-radius: 2px;
+      animation: scrollBob 1.6s ease-in-out infinite;
+    }
+
+    @keyframes scrollBob {
+      0% {
+        top: 6px;
+        opacity: 1
+      }
+
+      100% {
+        top: 20px;
+        opacity: 0
+      }
+    }
+
+    /* ─────────────────────────────────────────
+   SIGN-IN SECTION
+───────────────────────────────────────── */
+    #signin-section {
+      position: relative;
+      z-index: 1;
+      padding: 130px 64px;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .lbl {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 18px;
+    }
+
+    .sec-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(52px, 7vw, 96px);
+      line-height: .92;
+      margin-bottom: 12px;
+    }
+
+    .sec-title em {
+      font-style: normal;
+      color: var(--gold);
+      text-shadow: 0 0 30px rgba(255, 225, 53, .4);
+    }
+
+    .signin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .signin-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 56px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .35s, transform .35s, box-shadow .35s;
+    }
+
+    /* top color bar */
+    .signin-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .card-org::before {
+      background: linear-gradient(90deg, var(--cyan), #0090ff);
+    }
+
+    .card-user::before {
+      background: linear-gradient(90deg, var(--gold), #ff9500);
+    }
+
+    /* animated corner accent */
+    .signin-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 60px;
+      height: 60px;
+      border-bottom: 2px solid;
+      border-right: 2px solid;
+      opacity: 0;
+      transform: scale(.5);
+      transition: opacity .35s, transform .35s;
+    }
+
+    .card-org::after {
+      border-color: var(--cyan);
+    }
+
+    .card-user::after {
+      border-color: var(--gold);
+    }
+
+    .card-org:hover::after,
+    .card-user:hover::after {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .card-org:hover {
+      border-color: var(--cyan);
+      transform: translateY(-6px);
+      box-shadow: 0 24px 70px rgba(0, 240, 255, .12);
+    }
+
+    .card-user:hover {
+      border-color: var(--gold);
+      transform: translateY(-6px);
+      box-shadow: 0 24px 70px rgba(255, 225, 53, .12);
+    }
+
+    .sc-emoji {
+      font-size: 54px;
+      margin-bottom: 22px;
+      display: block;
+      animation: floatEmoji 4s ease-in-out infinite;
+    }
+
+    .signin-card:nth-child(2) .sc-emoji {
+      animation-delay: .6s;
+    }
+
+    @keyframes floatEmoji {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    .sc-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 38px;
+      letter-spacing: 2px;
+      margin-bottom: 14px;
+    }
+
+    .card-org .sc-title {
+      color: var(--cyan);
+      text-shadow: 0 0 22px rgba(0, 240, 255, .45);
+    }
+
+    .card-user .sc-title {
+      color: var(--gold);
+      text-shadow: 0 0 22px rgba(255, 225, 53, .45);
+    }
+
+    .sc-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.72;
+      margin-bottom: 40px;
+    }
+
+    /* card buttons */
+    .sc-btn {
+      width: 100%;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 16px;
+      border: none;
+      cursor: none;
+      font-weight: 700;
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow .25s, transform .2s;
+    }
+
+    .sc-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, .15);
+      transform: translateX(-100%);
+      transition: transform .3s;
+    }
+
+    .sc-btn:hover::after {
+      transform: translateX(0);
+    }
+
+    .sc-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .sc-btn-cyan {
+      background: var(--cyan);
+      color: var(--bg);
+    }
+
+    .sc-btn-cyan:hover {
+      box-shadow: var(--glow-c);
+    }
+
+    .sc-btn-gold {
+      background: var(--gold);
+      color: var(--bg);
+    }
+
+    .sc-btn-gold:hover {
+      box-shadow: var(--glow-g);
+    }
+
+    .sc-btn-outline {
+      width: 100%;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: none;
+      transition: border-color .2s, color .2s;
+    }
+
+    .sc-btn-outline:hover {
+      border-color: var(--muted);
+      color: var(--text);
+    }
+
+    /* ─────────────────────────────────────────
+   HOW IT WORKS
+───────────────────────────────────────── */
+    #how {
+      position: relative;
+      z-index: 1;
+      padding: 100px 64px;
+      border-top: 1px solid var(--border);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-top: 64px;
+    }
+
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 36px 26px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .35s, transform .35s, box-shadow .35s;
+    }
+
+    .step:hover {
+      border-color: var(--cyan);
+      transform: translateY(-6px);
+      box-shadow: 0 20px 60px rgba(0, 240, 255, .1);
+    }
+
+    /* sweep underline */
+    .step::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .45s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .step:hover::after {
+      transform: scaleX(1);
+    }
+
+    /* scan line */
+    .step::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: scanLine 4s linear infinite;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .step:hover::before {
+      opacity: .5;
+    }
+
+    @keyframes scanLine {
+      from {
+        top: 0;
+      }
+
+      to {
+        top: 100%;
+      }
+    }
+
+    .s-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 76px;
+      line-height: 1;
+      color: var(--border);
+      margin-bottom: 14px;
+      transition: color .3s;
+    }
+
+    .step:hover .s-num {
+      color: rgba(0, 240, 255, .2);
+    }
+
+    .s-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+
+    .s-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .s-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* ─────────────────────────────────────────
+   CTA
+───────────────────────────────────────── */
+    #cta {
+      position: relative;
+      z-index: 1;
+      padding: 130px 64px;
+      text-align: center;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+    }
+
+    #cta::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle,
+          rgba(0, 240, 255, .07) 0%,
+          rgba(191, 95, 255, .04) 45%,
+          transparent 70%);
+      animation: glowBreath 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .cta-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(64px, 10vw, 150px);
+      line-height: .88;
+      margin-bottom: 32px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .cta-title .c1 {
+      display: block;
+      color: var(--text);
+    }
+
+    .cta-title .c2 {
+      display: block;
+      color: var(--cyan);
+      text-shadow: 0 0 80px rgba(0, 240, 255, .55);
+    }
+
+    .cta-title .c3 {
+      display: block;
+      color: var(--gold);
+      text-shadow: 0 0 60px rgba(255, 225, 53, .45);
+    }
+
+    .cta-sub {
+      font-size: 15px;
+      color: var(--muted);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ─────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 28px 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .foot-l {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .foot-r {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .foot-r span {
+      color: var(--gold);
+    }
+
+    /* ─────────────────────────────────────────
+   SCROLL REVEAL
+───────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transition: opacity .8s cubic-bezier(.22, 1, .36, 1), transform .8s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .reveal.up {
+      transform: translateY(50px) scale(.97);
+    }
+
+    .reveal.left {
+      transform: translateX(-60px);
+    }
+
+    .reveal.right {
+      transform: translateX(60px);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ─────────────────────────────────────────
+   SHARED KEYFRAMES
+───────────────────────────────────────── */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* ─────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────── */
+    @media(max-width:1024px) {
+      nav {
+        padding: 20px 28px;
+      }
+
+      #hero,
+      #signin-section,
+      #how,
+      #cta {
+        padding-left: 28px;
+        padding-right: 28px;
+      }
+
+      .signin-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .steps {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      footer {
+        padding: 24px 28px;
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- CURSOR -->
+  <div id="cur-outer">
+    <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="12" width="12" height="10" rx="5" stroke="#00f0ff" stroke-width="2" />
+      <rect x="19" y="12" width="12" height="10" rx="5" stroke="#ffe135" stroke-width="2" />
+      <line x1="15" y1="17" x2="19" y2="17" stroke="#00ff9d" stroke-width="2.2" />
+    </svg>
+  </div>
+  <div id="cur-inner"></div>
+
+  <!-- CANVAS -->
+  <canvas id="bg"></canvas>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <a href="#" class="logo">CERT<span>CHAIN</span></a>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <!-- orbiting rings -->
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+
+    <!-- floating hexagons -->
+    <div class="hex" style="top:18%;left:8%; --d:7s;">⬡</div>
+    <div class="hex" style="top:72%;left:6%; --d:9s; animation-delay:.8s;">⬡</div>
+    <div class="hex" style="top:22%;right:7%; --d:8s; animation-delay:1.2s; color:var(--gold)">⬡</div>
+    <div class="hex" style="top:68%;right:9%; --d:6.5s; animation-delay:.4s; color:var(--purple)">⬡</div>
+    <div class="hex" style="top:45%;left:3%; --d:10s; animation-delay:2s; color:var(--green); font-size:12px">⬡</div>
+    <div class="hex" style="top:40%;right:4%; --d:11s; animation-delay:1.6s; font-size:12px">⬡</div>
+
+    <h1 class="hero-title">
+      <span class="t1">CERT</span>
+      <span class="t2" data-text="CHAIN">CHAIN</span>
+    </h1>
+
+    <p class="hero-sub-title">NFT Certificate Verification</p>
+
+    <div class="hero-cta">
+      <button class="btn-login" onclick="window.location.href='login.html'">Log In</button>
+    </div>
+
+    <div class="scroll-hint">
+      <div class="scroll-mouse"></div>
+      <span>Scroll</span>
+    </div>
+  </section>
+
+  <!-- SIGN IN -->
+  <section id="signin-section">
+    <div class="section-header reveal up">
+      <p class="lbl">// Access CertChain</p>
+      <h2 class="sec-title">JOIN THE<br><em>CHAIN</em></h2>
+    </div>
+
+    <div class="signin-grid">
+      <div class="signin-card card-org reveal left">
+        <span class="sc-emoji">🏛️</span>
+        <div class="sc-title">Organization</div>
+        <p class="sc-desc">Universities, training providers, and certification bodies — issue tamper-proof NFT
+          credentials to your graduates and students in minutes.</p>
+        <button class="sc-btn sc-btn-cyan" onclick="window.location.href='org.html'">Sign Up as Organization</button>
+        <button class="sc-btn-outline" onclick="window.location.href='login.html'">Already have an account? Log In</button>
+      </div>
+
+      <div class="signin-card card-user reveal right" style="transition-delay:.12s">
+        <span class="sc-emoji">🎓</span>
+        <div class="sc-title">User</div>
+        <p class="sc-desc">Students, professionals, and learners — access your NFT credentials, share verified proof of
+          achievement, and own your qualifications forever.</p>
+        <button class="sc-btn sc-btn-gold" onclick="window.location.href='user.html'">Sign Up as User</button>
+        <button class="sc-btn-outline" onclick="window.location.href='login.html'">Already have an account? Log In</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="section-header reveal up">
+      <p class="lbl">// Protocol</p>
+      <h2 class="sec-title">HOW IT<br><em>WORKS</em></h2>
+    </div>
+
+    <div class="steps">
+      <div class="step reveal up" style="transition-delay:0s">
+        <div class="s-num">01</div>
+        <div class="s-icon">🏛️</div>
+        <div class="s-name">Organization Issues</div>
+        <p class="s-desc">Accredited organizations connect their wallet, upload credential data, and a smart contract
+          auto-mints a unique ERC-721 NFT tied to the recipient.</p>
+      </div>
+      <div class="step reveal up" style="transition-delay:.13s">
+        <div class="s-num">02</div>
+        <div class="s-icon">⛓️</div>
+        <div class="s-name">Minted On-Chain</div>
+        <p class="s-desc">Certificate metadata is hashed and pinned to IPFS. The NFT is permanently written to Ethereum
+          — immutable, public, and decentralized forever.</p>
+      </div>
+      <div class="step reveal up" style="transition-delay:.26s">
+        <div class="s-num">03</div>
+        <div class="s-icon">📤</div>
+        <div class="s-name">User Owns It</div>
+        <p class="s-desc">Recipients receive the NFT in their wallet alongside a shareable verification link and QR code
+          — embeddable on LinkedIn and job portals.</p>
+      </div>
+      <div class="step reveal up" style="transition-delay:.39s">
+        <div class="s-num">04</div>
+        <div class="s-icon">✅</div>
+        <div class="s-name">Anyone Verifies</div>
+        <p class="s-desc">Enter a token ID or hash — the smart contract returns full verified credential data in under 3
+          seconds. No account, no fees, no trust required.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="cta">
+    <h2 class="cta-title reveal up">
+      <span class="c1">TRUST THE</span>
+      <span class="c2">CHAIN,</span>
+      <span class="c3">NOT THE PAPER</span>
+    </h2>
+    <p class="cta-sub reveal up" style="transition-delay:.18s">
+      Web3 · NFT · Smart Contracts · IPFS · Ethereum
+    </p>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="foot-l">© 2024 CertChain · Team of 4</div>
+    <div class="foot-r">Solidity · IPFS · React · Ethereum<br><span>Built with ♥ in 36 hours</span></div>
+  </footer>
+
+  <script>
+    /* ── CURSOR ── */
+    const outer = document.getElementById('cur-outer');
+    const inner = document.getElementById('cur-inner');
+    let mx = 0, my = 0, ox = 0, oy = 0;
+    const sparkColors = ['#00f0ff', '#ffe135', '#00ff9d', '#bf5fff', '#ff5580', '#ffffff'];
+    let lastSpark = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      inner.style.left = mx + 'px';
+      inner.style.top = my + 'px';
+
+      const now = Date.now();
+      if (now - lastSpark > 55) {
+        lastSpark = now;
+        const s = document.createElement('div');
+        s.className = 'spark';
+        const tx = (Math.random() - .5) * 40;
+        const ty = (Math.random() - .5) * 40;
+        const sz = 3 + Math.random() * 6;
+        s.style.cssText = `
+      left:${mx}px; top:${my}px;
+      width:${sz}px; height:${sz}px;
+      background:${sparkColors[Math.floor(Math.random() * sparkColors.length)]};
+      --tx:${tx}px; --ty:${ty}px;
+      box-shadow: 0 0 ${sz * 2}px currentColor;
+    `;
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 720);
+      }
+    });
+
+    (function loop() {
+      ox += (mx - ox) * 0.09;
+      oy += (my - oy) * 0.09;
+      outer.style.left = ox + 'px';
+      outer.style.top = oy + 'px';
+      requestAnimationFrame(loop);
+    })();
+
+    document.querySelectorAll('button, a').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        inner.style.width = '22px';
+        inner.style.height = '22px';
+        inner.style.background = 'var(--cyan)';
+        outer.style.transform = 'translate(-50%,-50%) scale(1.5)';
+      });
+      el.addEventListener('mouseleave', () => {
+        inner.style.width = '9px';
+        inner.style.height = '9px';
+        inner.style.background = 'var(--gold)';
+        outer.style.transform = 'translate(-50%,-50%) scale(1)';
+      });
+    });
+
+    /* ── NAV SCROLL ── */
+    window.addEventListener('scroll', () =>
+      document.getElementById('nav').classList.toggle('scrolled', scrollY > 50)
+    );
+
+    /* ── CANVAS PARTICLE NETWORK ── */
+    const canvas = document.getElementById('bg');
+    const ctx = canvas.getContext('2d');
+    let W = canvas.width = innerWidth;
+    let H = canvas.height = innerHeight;
+    window.addEventListener('resize', () => {
+      W = canvas.width = innerWidth;
+      H = canvas.height = innerHeight;
+    });
+
+    const pts = Array.from({ length: 90 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - .5) * .4,
+      vy: (Math.random() - .5) * .4,
+      r: Math.random() * 1.4 + .3,
+      a: Math.random() * .45 + .1,
+      hue: Math.random() < .7 ? 'cyan' : (Math.random() < .5 ? 'gold' : 'purple')
+    }));
+
+    const nodeColors = { cyan: 'rgba(0,240,255,', gold: 'rgba(255,225,53,', purple: 'rgba(191,95,255,' };
+
+    (function draw() {
+      ctx.clearRect(0, 0, W, H);
+      pts.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > W) p.vx *= -1;
+        if (p.y < 0 || p.y > H) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = nodeColors[p.hue] + p.a + ')';
+        ctx.fill();
+      });
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+          const dx = pts[i].x - pts[j].x;
+          const dy = pts[i].y - pts[j].y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 140) {
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x, pts[i].y);
+            ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.strokeStyle = `rgba(0,240,255,${.12 * (1 - d / 140)})`;
+            ctx.lineWidth = .5;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    })();
+
+    /* ── SCROLL REVEAL ── */
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) e.target.classList.add('visible');
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
+
+    <script src="../frontend.js/config.js"></script>
+
+    <script src="../frontend.js/user.js"></script>
+</body>
+
+</html>
